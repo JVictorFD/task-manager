@@ -10,3 +10,10 @@ build
 *.env.production.local
 coverage
 package-lock.json
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.kube/
+terraform.tfstate
+terraform.tfstate.backup

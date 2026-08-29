@@ -1,0 +1,66 @@
+name: Terraform Validate
+
+on:
+  push:
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform.yml'
+    branches: [ main, dev_aula, feat/* ]
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+    branches: [ main, dev_aula ]
+
+jobs:
+  validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.16.0
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./infra/terraform
+        continue-on-error: true
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: ./infra/terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./infra/terraform
+
+      - name: Terraform Plan (dry-run)
+        run: terraform plan -out=tfplan
+        working-directory: ./infra/terraform
+        continue-on-error: true
+        env:
+          TF_VAR_cluster_name: "task-manager-cluster"
+          TF_VAR_app_namespace: "task-manager"
+          TF_VAR_monitoring_namespace: "monitoring"
+
+  security-scan:
+    name: Security Scan (TFLint)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v3
+        with:
+          tflint_version: latest
+
+      - name: Run TFLint
+        run: tflint --init && tflint --format compact
+        working-directory: ./infra/terraform
+        continue-on-error: true
